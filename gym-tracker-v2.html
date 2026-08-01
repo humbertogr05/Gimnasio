@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym Tracker">
+<meta name="theme-color" content="#0f1115">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f1115'/%3E%3Ctext x='50' y='65' font-size='55' text-anchor='middle'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E">
+<title>Gym Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --card:#181b21;
+    --border:#2a2e37;
+    --text:#e6e8eb;
+    --muted:#8a8f98;
+    --green:#2e7d46;
+    --red:#a63131;
+    --black:#111318;
+    --gray:#2a2e37;
+    --accent:#4c8bf5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:20px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  header h1{font-size:20px;margin:0;font-weight:600;}
+  .nav{display:flex;align-items:center;gap:10px;}
+  .nav button{
+    background:var(--card);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;
+  }
+  .nav button:hover{border-color:var(--accent);}
+  .month-label{font-weight:600;min-width:140px;text-align:center;}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);
+    margin-bottom:16px;padding:10px 12px;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;
+  }
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+  }
+  .wd{text-align:center;font-size:11px;color:var(--muted);padding-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
+
+  .day{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    min-height:78px;padding:6px;display:flex;flex-direction:column;gap:4px;
+    position:relative;cursor:pointer;transition:border-color .1s ease;
+  }
+  .day:hover{border-color:var(--accent);}
+  .day.empty{background:transparent;border:none;cursor:default;}
+  .day.state-green{background:rgba(46,125,70,0.28);border-color:var(--green);}
+  .day.state-red{background:rgba(166,49,49,0.28);border-color:var(--red);}
+  .day.state-black{background:#0a0b0e;border-color:#3a3a3a;}
+  .daynum{font-size:12px;color:var(--muted);}
+  .today .daynum{color:var(--accent);font-weight:700;}
+
+  .gym-tag{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;
+  }
+  .gym-tag .icon{font-size:18px;line-height:1;}
+  .gym-tag .lbl{font-size:8px;letter-spacing:.02em;color:var(--muted);text-transform:uppercase;font-weight:600;}
+  .state-green .gym-tag .lbl{color:#8fe0a8;}
+  .state-red .gym-tag .lbl{color:#ffb0b0;}
+  .state-black .gym-tag .lbl{color:#9a9a9a;}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+    padding:16px;
+  }
+  .popover{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:18px;width:260px;max-width:100%;
+  }
+  .popover h3{margin:0 0 4px;font-size:15px;font-weight:700;text-align:center;color:var(--text);}
+  .popover .sub{font-size:11px;color:var(--muted);text-align:center;margin-bottom:14px;}
+  .popover .opt{
+    display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;
+    margin-bottom:8px;cursor:pointer;border:1px solid var(--border);font-size:14px;font-weight:500;
+  }
+  .popover .opt:hover{border-color:var(--accent);background:rgba(76,139,245,0.08);}
+  .popover .opt .icon{font-size:18px;}
+  .popover .opt .desc{font-size:10px;color:var(--muted);font-weight:400;display:block;}
+  .popover .clear{
+    text-align:center;font-size:12px;color:var(--muted);cursor:pointer;margin-top:8px;
+    padding:8px;border-top:1px solid var(--border);
+  }
+  .popover .clear:hover{color:var(--text);}
+
+  .row{display:flex;gap:4px;align-items:center;}
+  .btn{
+    flex:1;height:22px;border-radius:6px;cursor:pointer;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px;font-weight:600;
+    color:var(--muted);user-select:none;transition:transform .06s ease;text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .btn:active{transform:scale(0.94);}
+  .creatina-btn{height:24px;font-size:10px;}
+
+  @media (max-width: 420px){
+    body{padding:10px;}
+    .grid{gap:4px;}
+    .day{min-height:64px;padding:4px;}
+    .gym-tag .icon{font-size:15px;}
+    .gym-tag .lbl{font-size:7px;}
+    .creatina-btn{font-size:8px;height:20px;}
+  }
+
+  .state-unset{background:var(--gray);}
+  .state-green{background:var(--green);color:#eaffea;border-color:var(--green);}
+  .state-red{background:var(--red);color:#ffecec;border-color:var(--red);}
+  .state-black{background:var(--black);color:#8a8f98;border-color:#000;}
+
+  .howto{
+    display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);
+    margin-bottom:16px;padding:12px 14px;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;
+  }
+  .howto b{color:var(--text);}
+  .stats{
+    display:flex;gap:10px;margin-bottom:14px;
+  }
+  .stat{
+    flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:10px;text-align:center;
+  }
+  .stat b{display:block;font-size:18px;}
+  .stat span{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏋️ Gym & Creatina</h1>
+  </header>
+
+  <div class="nav" style="justify-content:center;margin-bottom:14px;">
+    <button id="prev">‹</button>
+    <div class="month-label" id="monthLabel"></div>
+    <button id="next">›</button>
+  </div>
+
+  <div class="howto">
+    <div><b>👉 Click en el día</b> → elegir Gym: fui / descanso / no fui</div>
+    <div><b>👉 Click en el botón "Creatina"</b> → marcar tomada / no tomada</div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="grid" id="weekdays"></div>
+  <div class="grid" id="calendar" style="margin-top:6px;"></div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'gym-tracker-data';
+let data = {}; // { "2026-08-01": { gym: "green"|"red"|"black"|undefined, creatina: "green"|"red"|undefined } }
+let current = new Date();
+current.setDate(1);
+
+const weekdaysEl = document.getElementById('weekdays');
+const calendarEl = document.getElementById('calendar');
+const monthLabelEl = document.getElementById('monthLabel');
+const statsEl = document.getElementById('stats');
+
+const WD = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+weekdaysEl.innerHTML = WD.map(w => `<div class="wd">${w}</div>`).join('');
+
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function fmtKey(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+const GYM_ICON = { undefined: '', green: '💪', black: '😴', red: '❌' };
+const GYM_LABEL = { undefined: '', green: 'Fui', black: 'Descanso', red: 'No fui' };
+const CREA_STATES = [undefined, 'green', 'red'];
+const CREA_ICON = { undefined: '💊', green: '✅', red: '⛔' };
+const CREA_LABEL = { undefined: 'Creatina', green: 'Tomada', red: 'No tomada' };
+
+function nextState(list, cur){
+  const idx = list.indexOf(cur);
+  return list[(idx+1) % list.length];
+}
+
+async function loadData(){
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      const res = await window.storage.get(STORAGE_KEY, false);
+      data = res ? JSON.parse(res.value) : {};
+      return;
+    }
+  }catch(e){ /* window.storage no disponible aquí, seguimos con localStorage */ }
+
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    data = raw ? JSON.parse(raw) : {};
+  }catch(e){
+    data = {};
+  }
+}
+
+async function saveData(){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+      return;
+    }
+  }catch(e){ /* seguimos con localStorage */ }
+
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }catch(e){
+    console.error('Error guardando', e);
+  }
+}
+
+function render(){
+  monthLabelEl.textContent = MONTHS[current.getMonth()] + ' ' + current.getFullYear();
+
+  const year = current.getFullYear();
+  const month = current.getMonth();
+  const firstDay = new Date(year, month, 1);
+  // Monday-first index
+  let startIdx = firstDay.getDay() - 1;
+  if(startIdx < 0) startIdx = 6;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  let html = '';
+  for(let i=0;i<startIdx;i++){
+    html += '<div class="day empty"></div>';
+  }
+
+  const todayKey = fmtKey(new Date());
+
+  let counts = { green:0, red:0, black:0, crea:0 };
+
+  for(let day=1; day<=daysInMonth; day++){
+    const d = new Date(year, month, day);
+    const key = fmtKey(d);
+    const entry = data[key] || {};
+    const gymState = entry.gym;
+    const creaState = entry.creatina;
+
+    if(gymState === 'green') counts.green++;
+    if(gymState === 'red') counts.red++;
+    if(gymState === 'black') counts.black++;
+    if(creaState === 'green') counts.crea++;
+
+    const isToday = key === todayKey;
+
+    html += `
+      <div class="day state-${gymState || 'unset'} ${isToday ? 'today' : ''}" data-key="${key}" data-role="daycell">
+        <div class="daynum">${day}</div>
+        <div class="gym-tag">
+          <span class="icon">${GYM_ICON[gymState]}</span>
+          <span class="lbl">${GYM_LABEL[gymState]}</span>
+        </div>
+        <div class="row">
+          <div class="btn creatina-btn state-${creaState || 'unset'}" data-key="${key}" data-type="creatina" title="Creatina">
+            ${CREA_ICON[creaState]} ${creaState ? '' : 'Creatina'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  calendarEl.innerHTML = html;
+
+  statsEl.innerHTML = `
+    <div class="stat"><b style="color:var(--green)">${counts.green}</b><span>💪 Fui</span></div>
+    <div class="stat"><b style="color:var(--red)">${counts.red}</b><span>❌ Fallados</span></div>
+    <div class="stat"><b style="color:var(--muted)">${counts.black}</b><span>😴 Descanso</span></div>
+    <div class="stat"><b style="color:var(--accent)">${counts.crea}</b><span>💊 Creatina</span></div>
+  `;
+
+  document.querySelectorAll('[data-role="daycell"]').forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      openGymPopover(cell.dataset.key);
+    });
+  });
+
+  document.querySelectorAll('.creatina-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onCreatinaClick(e);
+    });
+  });
+}
+
+async function onCreatinaClick(e){
+  const key = e.currentTarget.dataset.key;
+  if(!data[key]) data[key] = {};
+  data[key].creatina = nextState(CREA_STATES, data[key].creatina);
+  await saveData();
+  render();
+}
+
+function openGymPopover(key){
+  const [y,m,d] = key.split('-').map(Number);
+  const label = `${d} de ${MONTHS[m-1]}`;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="popover">
+      <h3>${label}</h3>
+      <div class="sub">¿Qué pasó ese día en el gym?</div>
+      <div class="opt" data-val="green"><span class="icon">💪</span><span>Fui <span class="desc">entrené normal</span></span></div>
+      <div class="opt" data-val="black"><span class="icon">😴</span><span>Descanso <span class="desc">día libre, no cuenta</span></span></div>
+      <div class="opt" data-val="red"><span class="icon">❌</span><span>No fui <span class="desc">debía ir y fallé</span></span></div>
+      <div class="clear" data-val="clear">Quitar marca</div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', async (e) => {
+    if(e.target === overlay){
+      overlay.remove();
+      return;
+    }
+    const optEl = e.target.closest('[data-val]');
+    if(!optEl) return;
+    const val = optEl.dataset.val;
+    if(!data[key]) data[key] = {};
+    data[key].gym = (val === 'clear') ? undefined : val;
+    await saveData();
+    overlay.remove();
+    render();
+  });
+
+  document.body.appendChild(overlay);
+}
+
+document.getElementById('prev').addEventListener('click', () => {
+  current.setMonth(current.getMonth()-1);
+  render();
+});
+document.getElementById('next').addEventListener('click', () => {
+  current.setMonth(current.getMonth()+1);
+  render();
+});
+
+(async function init(){
+  render(); // pinta el calendario de inmediato, aunque el storage falle o tarde
+  try{
+    await loadData();
+    render(); // repinta con los datos ya cargados
+  }catch(e){
+    console.error('No se pudieron cargar datos guardados', e);
+  }
+})();
+</script>
+</body>
+</html>
